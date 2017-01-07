@@ -23,6 +23,7 @@ schedule(brush_teeth_morning, Day) :- weekday(Day).
 schedule(shower, Day) :- weekday(Day).
 schedule(breakfast, Day) :- weekday(Day).
 schedule(travel_to_work, Day) :- workday(Day).
+schedule(laundry, sunday).
 schedule(work_before_lunch, Day) :- workday(Day).
 schedule(lunch, Day) :- weekday(Day).
 schedule(work_after_lunch, Day) :- workday(Day).
