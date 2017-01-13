@@ -15,23 +15,136 @@ workday(friday).
 weekend(saturday).
 weekend(sunday).
 
-schoolnight(Day) :- weekday(Day), Day \= friday, Day \= saturday.
+schoolnight(Day) :-
+  weekday(Day),
+  Day \= friday,
+  Day \= saturday.
 
-schedule(wakeup, start_time(5,0,0), Day) :- weekday(Day).
-schedule(exercise_morning, start_time(5,5,0), Day) :- weekday(Day), Day \= saturday.
-schedule(brush_teeth_morning, start_time(6,0,0), Day) :- weekday(Day).
-schedule(shower, start_time(6,5,0), Day) :- weekday(Day).
-schedule(breakfast, start_time(6,20,0), Day) :- weekday(Day).
-schedule(travel_to_work, start_time(7,0,0), Day) :- workday(Day).
-schedule(laundry, start_time(11,0,0), sunday).
-schedule(work_before_lunch, start_time(8,0,0), Day) :- workday(Day).
-schedule(lunch, start_time(12,0,0), Day) :- weekday(Day).
-schedule(work_after_lunch, start_time(12,45,0), Day) :- workday(Day).
-schedule(travel_from_work, start_time(16,15,0), Day) :- workday(Day).
-schedule(exercise_afternoon, start_time(17,15,0), Day) :- schoolnight(Day).
-schedule(dinner, start_time(18,15,0), Day) :- weekday(Day).
-schedule(prepare_for_next_day, start_time(19,15,0), Day) :- schoolnight(Day).
-schedule(leisure, start_time(20,15,0), Day) :- schoolnight(Day).
-schedule(brush_teeth_evening, start_time(20,30,0), Day) :- weekday(Day).
-schedule(prepare_for_bed, start_time(20,35,0), Day) :- weekday(Day).
-schedule(slumber, start_time(21,0,0), Day) :- weekday(Day).
+return_time(Minutes, Time) :-
+  get_time(CurrentTime),
+  stamp_date_time(CurrentTime, CurrentTimeStamp, local),
+  date_time_value(year, CurrentTimeStamp, Year),
+  date_time_value(month, CurrentTimeStamp, Month),
+  date_time_value(day, CurrentTimeStamp, Day),
+  date_time_stamp(date(Year, Month, Day, 0, Minutes, 0, 0, -, -), Stamp),
+  stamp_date_time(Stamp, D, 0),
+  date_time_value(time, D, Time).
+
+schedule(wakeup, TaskLength, TaskStartTime, Day) :- 
+  weekday(Day),
+  TaskLength is 0,
+  TaskStartTime is 300.
+
+schedule(exercise_morning, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(wakeup, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(brush_teeth_morning, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 10,
+  schedule(exercise_morning, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(brush_teeth_morning, TaskLength, TaskStartTime, Day) :-
+  weekend(Day),
+  TaskLength is 5,
+  schedule(wakeup, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(shower, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 15,
+  schedule(brush_teeth_morning, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(shower, TaskLength, TaskStartTime, Day) :-
+  weekend(Day),
+  TaskLength is 20,
+  schedule(brush_teeth_morning, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(breakfast, TaskLength, TaskStartTime, Day) :-
+  weekday(Day),
+  TaskLength is 30,
+  schedule(shower, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(travel_to_work, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(breakfast, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(laundry, TaskLength, TaskStartTime, Day) :-
+  Day == sunday,
+  TaskLength is 5,
+  schedule(breakfast, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(work_before_lunch, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60 * 3.5,
+  schedule(travel_to_work, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(lunch, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 45,
+  schedule(work_before_lunch, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(work_after_lunch, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60 * 4,
+  schedule(lunch, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(travel_from_work, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(work_after_lunch, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(exercise_afternoon, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(travel_from_work, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(dinner, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(exercise_afternoon, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(prepare_for_next_day, TaskLength, TaskStartTime, Day) :-
+  workday(Day),
+  TaskLength is 60,
+  schedule(dinner, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(leisure, TaskLength, TaskStartTime, Day) :-
+  schoolnight(Day),
+  TaskLength is 15,
+  schedule(prepare_for_next_day, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(brush_teeth_evening, TaskLength, TaskStartTime, Day) :-
+  schoolnight(Day),
+  TaskLength is 5,
+  schedule(leisure, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(prepare_for_bed, TaskLength, TaskStartTime, Day) :-
+  schoolnight(Day),
+  TaskLength is 30,
+  schedule(brush_teeth_evening, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
+
+schedule(slumber, TaskLength, TaskStartTime, Day) :-
+  schoolnight(Day),
+  TaskLength is 0,
+  schedule(prepare_for_bed, PreviousTaskLength, PreviousTaskStartTime, Day),
+  TaskStartTime is PreviousTaskStartTime + PreviousTaskLength.
